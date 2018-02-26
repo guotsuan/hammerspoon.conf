@@ -1,18 +1,3 @@
-
---function reloadConfig(files)
-    --doReload = false
-    --for _,file in pairs(files) do
-        --if file:sub(-4) == ".lua" then
-            --doReload = true
-        --end
-    --end
-    --if doReload then
-        --hs.reload()
-    --end
---end
-
---myWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reloadConfig):start()
---
 hs.loadSpoon("ReloadConfiguration")
 spoon.ReloadConfiguration:start()
 hs.alert.show("Config loaded")
@@ -156,16 +141,36 @@ function change_profile( pname )
 
 end
 
+function manage_ss(signal)
+    local appname="ShadowsocksX-NG-R8"
+    local ss=hs.appfinder.appFromName(appname)
+
+    if signal == 'close' then
+        if ss ~= nil then
+            ss:kill()
+        end
+        hs.alert.show(appname.." closed")
+    elseif signal == 'open' then
+        if hs.application.launchOrFocus(appname) ~= nil then
+            hs.alert.show(appname.." started")
+        else
+            hs.alert.show(appname.." failed to open")
+        end
+    end
+
+end
+
+
 
 wifiWatcher = nil
---homeSSID = "SHAO"
-homeSSID = "ChinaNet-503"
+homeSSID = "SHAO"
+--homeSSID = "ChinaNet-503"
 lastSSID = hs.wifi.currentNetwork()
 homebin_pro = os.getenv("HOME") .. "/bin/pro"
 
 function ssidChangedCallback()
     local hostname = hs.execute("hostname")
-    if string.match(hostname,'imac') == nil then
+    if  string.match(hostname,'imac') == nil then
     
         newSSID = hs.wifi.currentNetwork()
 
@@ -174,11 +179,17 @@ function ssidChangedCallback()
             change_profile("router")
             cmd = "ALL_PROXY=socks5://192.168.1.254:23456 '\"$@\"'"
             hs.execute("echo "..cmd.." >| "..homebin_pro)
+            --hs.execute("launchctl unload ~/Library/LaunchAgents/com.ss_plugins.kcptun.plist")
+            --hs.execute("launchctl unload ~/Library/LaunchAgents/com.ss_plugins.obfs.plist")
+            manage_ss('close')
         elseif newSSID ~= homeSSID and lastSSID == homeSSID then
             -- We just departed our home WiFi network
             change_profile("local")
             cmd = "ALL_PROXY=socks5://127.0.0.1:1086 '\"$@\"'"
             hs.execute("echo "..cmd.." >| "..homebin_pro)
+            --hs.execute("launchctl load ~/Library/LaunchAgents/com.ss_plugins.kcptun.plist")
+            --hs.execute("launchctl load ~/Library/LaunchAgents/com.ss_plugins.obfs.plist")
+            manage_ss('open')
         end
 
         lastSSID = newSSID
@@ -201,4 +212,5 @@ function download_youtube()
     end
 end
 
-hs.hotkey.bind({"cmd", "alt", "ctrl"}, 'y', download_youtube)
+
+
