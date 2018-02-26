@@ -142,16 +142,17 @@ function change_profile( pname )
 end
 
 function manage_ss(signal)
-    local appname="ShadowsocksX-NG-R8"
-    local ss=hs.appfinder.appFromName(appname)
+    --local appname="ShadowsocksX-NG"
+    local appname="com.qiuyuzhou.ShadowsocksX-NG"
+    local ss=hs.application.find(appname)
 
     if signal == 'close' then
         if ss ~= nil then
             ss:kill()
+            hs.alert.show(appname.." closed")
         end
-        hs.alert.show(appname.." closed")
     elseif signal == 'open' then
-        if hs.application.launchOrFocus(appname) ~= nil then
+        if hs.application.launchOrFocusByBundleID(appname) ~= nil then
             hs.alert.show(appname.." started")
         else
             hs.alert.show(appname.." failed to open")
@@ -163,14 +164,14 @@ end
 
 
 wifiWatcher = nil
-homeSSID = "SHAO"
---homeSSID = "ChinaNet-503"
+--homeSSID = "SHAO"
+homeSSID = "ChinaNet-503"
 lastSSID = hs.wifi.currentNetwork()
 homebin_pro = os.getenv("HOME") .. "/bin/pro"
 
 function ssidChangedCallback()
     local hostname = hs.execute("hostname")
-    if  string.match(hostname,'imac') == nil then
+    if  string.match(hostname,'iMac') == nil then
     
         newSSID = hs.wifi.currentNetwork()
 
