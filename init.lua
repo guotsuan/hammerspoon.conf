@@ -201,17 +201,20 @@ wifiWatcher = hs.wifi.watcher.new(ssidChangedCallback)
 wifiWatcher:start()
 
 function download_youtube()
-    url = hs.pasteboard.getContents()
+    local url = hs.pasteboard.getContents()
     if url ~= nil then
-        _,finished = hs.execute("cd ~/Downloads '&&' youtube-dl "..url..' &', true)
+        started = hs.execute("~/bin/ydown '"..hs.pasteboard.getContents().."'", true)
 
-        if finished then
-            hs.alert.show("Downlowding started")
+        if started ~=nil then 
+            if started then
+                hs.alert.show("Downlowding started")
+            end
         else
             hs.alert.show("Error! Please try again")
         end
     end
 end
 
+hs.hotkey.bind({"cmd", "alt", "ctrl"}, "y", download_youtube)
 
 
