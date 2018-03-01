@@ -144,18 +144,19 @@ end
 function manage_ss(signal)
     --local appname="ShadowsocksX-NG"
     local appname="com.qiuyuzhou.ShadowsocksX-NG"
+    local short_name="ShadowsocksX-NG-R8"
     local ss=hs.application.find(appname)
 
     if signal == 'close' then
         if ss ~= nil then
             ss:kill()
-            hs.alert.show(appname.." closed")
+            hs.alert.show(short_name.." closed")
         end
     elseif signal == 'open' then
         if hs.application.launchOrFocusByBundleID(appname) ~= nil then
-            hs.alert.show(appname.." started")
+            hs.alert.show(short_name.." started")
         else
-            hs.alert.show(appname.." failed to open")
+            hs.alert.show(short_name.." failed to open")
         end
     end
 
@@ -200,6 +201,20 @@ end
 wifiWatcher = hs.wifi.watcher.new(ssidChangedCallback)
 wifiWatcher:start()
 
+function switch_ss(signal)
+    if signal == 'local' then
+        change_profile("local")
+        cmd = "ALL_PROXY=socks5://192.168.1.254:23456 '\"$@\"'"
+        hs.execute("echo "..cmd.." >| "..homebin_pro)
+        manage_ss('open')
+    else
+        change_profile("router")
+        cmd = "ALL_PROXY=socks5://192.168.1.254:23456 '\"$@\"'"
+        hs.execute("echo "..cmd.." >| "..homebin_pro)
+        manage_ss('close')
+    end
+end
+
 function download_youtube()
     local url = hs.pasteboard.getContents()
     if url ~= nil then
@@ -216,5 +231,7 @@ function download_youtube()
 end
 
 hs.hotkey.bind({"cmd", "alt", "ctrl"}, "y", download_youtube)
+hs.hotkey.bind({"cmd", "alt", "ctrl"}, "s", function() switch_ss('local')end)
+hs.hotkey.bind({"cmd", "alt", "ctrl"}, "w", function() switch_ss('router')end)
 
 
