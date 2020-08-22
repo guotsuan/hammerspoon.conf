@@ -166,7 +166,7 @@ end
 
 wifiWatcher = nil
 --homeSSID = "SHAO"
-homeSSID = "ChinaNet-503"
+homeSSID = {"VolcanNet", "Mandalorian5", "Mandalorian"}
 lastSSID = hs.wifi.currentNetwork()
 homebin_pro = os.getenv("HOME") .. "/bin/pro"
 
@@ -176,18 +176,32 @@ function ssidChangedCallback()
     
         newSSID = hs.wifi.currentNetwork()
 
-        if newSSID == homeSSID and lastSSID ~= homeSSID then
+        local function contains(table, val)
+           for i=1,#table do
+              if table[i] == val then
+                 return true
+              end
+           end
+           return false
+        end
+
+        if contains(homeSSID, newSSID) then
             -- We just joined our home WiFi network
-            change_profile("router")
-            cmd = "ALL_PROXY=socks5://192.168.1.254:23456 '\"$@\"'"
+            if newSSID == "VolcanNet" then 
+                cmd = "ALL_PROXY=socks5://192.168.1.1:1081  '\"$@\"'"
+                change_profile("officerouter")
+            else
+                cmd = "ALL_PROXY=socks5://192.168.1.1:1082  '\"$@\"'"
+                change_profile("router")
+            end
             hs.execute("echo "..cmd.." >| "..homebin_pro)
             --hs.execute("launchctl unload ~/Library/LaunchAgents/com.ss_plugins.kcptun.plist")
             --hs.execute("launchctl unload ~/Library/LaunchAgents/com.ss_plugins.obfs.plist")
             manage_ss('close')
-        elseif newSSID ~= homeSSID and lastSSID == homeSSID then
+        else
             -- We just departed our home WiFi network
             change_profile("local")
-            cmd = "ALL_PROXY=socks5://127.0.0.1:1086 '\"$@\"'"
+            cmd = "ALL_PROXY=socks5://127.0.0.1:1086 https_proxy=127.0.0.1:1087 '\"$@\"'"
             hs.execute("echo "..cmd.." >| "..homebin_pro)
             --hs.execute("launchctl load ~/Library/LaunchAgents/com.ss_plugins.kcptun.plist")
             --hs.execute("launchctl load ~/Library/LaunchAgents/com.ss_plugins.obfs.plist")
@@ -204,12 +218,12 @@ wifiWatcher:start()
 function switch_ss(signal)
     if signal == 'local' then
         change_profile("local")
-        cmd = "ALL_PROXY=socks5://192.168.1.254:23456 '\"$@\"'"
+        cmd = "ALL_PROXY=socks5://127.0.0.1:1086 https_proxy=127.0.0.1:1087 '\"$@\"'"
         hs.execute("echo "..cmd.." >| "..homebin_pro)
         manage_ss('open')
     else
         change_profile("router")
-        cmd = "ALL_PROXY=socks5://192.168.1.254:23456 '\"$@\"'"
+        cmd = "ALL_PROXY=socks5://192.168.1.6:5321 '\"$@\"'"
         hs.execute("echo "..cmd.." >| "..homebin_pro)
         manage_ss('close')
     end
