@@ -11,7 +11,7 @@ function getGoodFocusedWindow(nofull)
    if not win or not win:isStandard() then return end
    if nofull and win:isFullScreen() then return end
    return win
-end 
+end
 
 function flashScreen(screen)
    local flash=hs.canvas.new(screen:fullFrame()):appendElements({
@@ -20,8 +20,7 @@ function flashScreen(screen)
 	 type = "rectangle"})
    flash:show()
    hs.timer.doAfter(.15,function () flash:delete() end)
-end 
-
+end
 
 function switchSpace(skip,dir)
    for i=1,skip do
