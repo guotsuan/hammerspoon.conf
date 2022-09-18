@@ -3,15 +3,15 @@ hs.loadSpoon("BingDaily")
 spoon.ReloadConfiguration:start()
 hs.alert.show("Config loaded")
 
-local window = require "hs.window"
-local spaces = require "hs._asm.undocumented.spaces"
+local window = require("hs.window")
+local spaces = require("hs.spaces")
 
 function getGoodFocusedWindow(nofull)
    local win = window.focusedWindow()
    if not win or not win:isStandard() then return end
    if nofull and win:isFullScreen() then return end
    return win
-end 
+end
 
 function flashScreen(screen)
    local flash=hs.canvas.new(screen:fullFrame()):appendElements({
@@ -20,47 +20,47 @@ function flashScreen(screen)
 	 type = "rectangle"})
    flash:show()
    hs.timer.doAfter(.15,function () flash:delete() end)
-end 
+end
 
 function switchSpace(skip,dir)
    for i=1,skip do
-      hs.eventtap.keyStroke({"ctrl"},dir)
-   end 
+      hs.eventtap.keyStroke({"ctrl","fn"},dir,0) -- "fn" is a bugfix!
+   end
 end
 
 function moveWindowOneSpace(dir,switch)
    local win = getGoodFocusedWindow(true)
    if not win then return end
    local screen=win:screen()
-   local uuid=screen:spacesUUID()
+   local uuid=screen:getUUID()
    local userSpaces=nil
-   for k,v in pairs(spaces.layout()) do
+   for k,v in pairs(spaces.allSpaces()) do
       userSpaces=v
       if k==uuid then break end
    end
    if not userSpaces then return end
-   local thisSpace=win:spaces() -- first space win appears on
+   local thisSpace=spaces.windowSpaces(win) -- first space win appears on
    if not thisSpace then return else thisSpace=thisSpace[1] end
    local last=nil
    local skipSpaces=0
    for _, spc in ipairs(userSpaces) do
-      if spaces.spaceType(spc)~=spaces.types.user then -- skippable space
+      if spaces.spaceType(spc)~="user" then -- skippable space
 	 skipSpaces=skipSpaces+1
-      else 			-- A good user space, check it
+      else
 	 if last and
-	    ((dir=="left"  and spc==thisSpace) or
-	     (dir=="right" and last==thisSpace))
-	 then
-	    win:spacesMoveTo(dir=="left" and last or spc)
-	    if switch then
-	       switchSpace(skipSpaces+1,dir)
-	       win:focus()
-	    end
-	    return
+	    ((dir=="left" and spc==thisSpace) or
+	     (dir=="right" and last==thisSpace)) then
+	       local newSpace=(dir=="left" and last or spc)
+	       if switch then
+		  -- spaces.gotoSpace(newSpace)  -- also possible, invokes MC
+		  switchSpace(skipSpaces+1,dir)
+	       end
+	       spaces.moveWindowToSpace(win,newSpace)
+	       return
 	 end
 	 last=spc	 -- Haven't found it yet...
 	 skipSpaces=0
-      end 
+      end
    end
    flashScreen(screen)   -- Shouldn't get here, so no space found
 end
@@ -287,8 +287,8 @@ function ssidChangedCallback()
     end
 end
 
-wifiWatcher = hs.wifi.watcher.new(ssidChangedCallback)
-wifiWatcher:start()
+--wifiWatcher = hs.wifi.watcher.new(ssidChangedCallback)
+--wifiWatcher:start()
 
 function switch_ss(signal)
     if signal == 'local' then
