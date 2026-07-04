@@ -7,7 +7,6 @@ hs.window.animationDuration = 0
 
 local window = require("hs.window")
 local spaces = require("hs.spaces")
-local allScreens = hs.screen.allScreens()
 
 --function focusOnScreen(num)
     --local allScreens = hs.screen.allScreens()
@@ -18,6 +17,10 @@ local allScreens = hs.screen.allScreens()
     --end
     --spaces.gotoSpace(allspaces[num-1])
 --end
+
+local function shellQuote(value)
+  return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
+end
 
 function isInScreen(screen, win)
   return win:screen() == screen
@@ -107,8 +110,8 @@ function moveWindowOneSpace(dir,switch)
    flashScreen(screen)   -- Shouldn't get here, so no space found
 end
 
-mash =      {"cmd", "ctrl"}
-mashshift = {"cmd", "ctrl","shift"}
+local mash =      {"cmd", "ctrl"}
+local mashshift = {"cmd", "ctrl","shift"}
 
 hs.hotkey.bind(mash, "s",nil,
 	    function() moveWindowOneSpace("right",true) end)
@@ -121,6 +124,7 @@ hs.hotkey.bind(mashshift, "a",nil,
 
 hs.hotkey.bind({"alt", "cmd"}, "Left", function() 
     local win = hs.window.focusedWindow()
+    if not win then return end
     local f = win:frame()
     local screen=win:screen()
     local max = screen:frame()
@@ -168,22 +172,13 @@ end)
 
 hs.hotkey.bind({"alt", "cmd"}, "f", function() 
     local win = hs.window.focusedWindow()
+    if not win then return end
     win:toggleZoom()
 end)
 
 hs.hotkey.bind({"cmd", "shift"}, "f", function() 
     local win = hs.window.focusedWindow()
-    local f = win:frame()
-    local screen=win:screen()
-    local max = screen:frame()
-
-    win:setFrame(max)
-end)
-
-hs.hotkey.bind({"cmd", "shift"}, "f", function() 
-
-    local win = hs.window.focusedWindow()
-    local f = win:frame()
+    if not win then return end
     local screen=win:screen()
     local max = screen:frame()
 
@@ -199,36 +194,73 @@ hs.hotkey.bind({"cmd", "alt"}, "k", function() hs.window.filter.focusNorth() end
 
 --hs.hotkey.bind({"alt", "cmd"}, "Right", function() 
 
--- set up your instance(s)
---expose = hs.expose.new(nil,{showThumbnails=false}) -- default windowfilter, no thumbnails
---expose_min = hs.expose.new{'Google Chrome', 'iTerm2'} -- default windowfilter, no thumbnails
-expose_app = hs.expose.new(nil,{onlyActiveApplication=true}) -- show windows for the current application
-expose_all = hs.expose.new(nil,{includeOtherSpaces=true, showThumbnails=false}) -- only windows in the current Mission Control Space
-expose_cur_space = hs.expose.new(nil,{includeOtherSpaces=false, showThumbnails=false}) -- only windows in the current Mission Control Space
---expose_browsers = hs.expose.new{'Safari','Google Chrome'} -- specialized expose using a custom windowfilter
--- for your dozens of browser windows :)
+local expose_ok, expose_mod = pcall(require, "hs.expose")
 
--- then bind to a hotkey
-hs.hotkey.bind('alt-cmd','a','Expose All',function()expose_all:toggleShow()end)
-hs.hotkey.bind('alt-cmd','e','Expose',function()expose_cur_space:toggleShow()end)
-hs.hotkey.bind('alt-cmd','p','App Expose',function()expose_app:toggleShow()end)
---hs.hotkey.bind('alt-cmd','m','Expose Min',function()expose_browsers:toggleShow()end)
+if expose_ok and expose_mod then
+    local function toggleExposeWithSecureInputCheck(expose)
+        if hs.eventtap.isSecureInputEnabled() then
+            hs.alert.show("Secure Input is enabled; expose cannot capture keys")
+            return
+        end
+        expose:toggleShow()
+    end
+
+    local expose_app = expose_mod.new(nil, {
+        onlyActiveApplication = true,
+        showThumbnails = false
+    })
+    local expose_all = expose_mod.new(nil, {
+        includeOtherSpaces = true,
+        showThumbnails = false
+    })
+    local expose_cur_space = expose_mod.new(nil, {
+        includeOtherSpaces = false,
+        showThumbnails = false
+    })
+
+    hs.hotkey.bind({"alt", "cmd"}, "a", "Expose All", function()
+        toggleExposeWithSecureInputCheck(expose_all)
+    end)
+    hs.hotkey.bind({"alt", "cmd"}, "e", "Expose", function()
+        toggleExposeWithSecureInputCheck(expose_cur_space)
+    end)
+    hs.hotkey.bind({"alt", "cmd"}, "p", "App Expose", function()
+        toggleExposeWithSecureInputCheck(expose_app)
+    end)
+else
+    hs.alert.show("hs.expose is not available")
+end
 
 function movetospace(num)
     --local spaces = require("hs.spaces")
     local win = hs.window.focusedWindow()
+    if not win then return end
     local screen=win:screen()
+    if not screen then return end
     local spaceID_cur = spaces.activeSpaceOnScreen(screen)
     local spaceIDs = spaces.spacesForScreen(screen)
+    if not spaceIDs or not spaceIDs[num] then
+        hs.alert.show("Space "..tostring(num).." is not available")
+        return
+    end
     --print(spaces.spaceName(spaceID_cur))
     print(spaceID_cur)
     spaces.moveWindowToSpace(win,spaceIDs[num])
     spaces.gotoSpace(spaceIDs[num]) 
 end 
 
-hs.hotkey.bind({"ctrl", "alt"}, "1", function() focusOnScreen(allScreens[3], 1)  end)
-hs.hotkey.bind({"ctrl", "alt"}, "2", function() focusOnScreen(allScreens[1], 2)  end)
-hs.hotkey.bind({"ctrl", "alt"}, "3", function() focusOnScreen(allScreens[2], 3) end)
+hs.hotkey.bind({"ctrl", "alt"}, "1", function()
+    local screens = hs.screen.allScreens()
+    focusOnScreen(screens[3], 1)
+end)
+hs.hotkey.bind({"ctrl", "alt"}, "2", function()
+    local screens = hs.screen.allScreens()
+    focusOnScreen(screens[1], 2)
+end)
+hs.hotkey.bind({"ctrl", "alt"}, "3", function()
+    local screens = hs.screen.allScreens()
+    focusOnScreen(screens[2], 3)
+end)
 
 hs.hotkey.bind({"cmd", "alt"}, "1", function() movetospace(1) end)
 hs.hotkey.bind({"cmd", "alt"}, "2", function() movetospace(2) end)
@@ -246,10 +278,18 @@ function change_profile( pname )
     -- end
     hs.application.launchOrFocus("Proxifier")
     local proxifer=hs.appfinder.appFromName("Proxifier")
+    if not proxifer then
+        hs.alert.show("Proxifier is not available")
+        return
+    end
     local str_local_menu = {"File", "Load Profile", "localproxy"}
     local str_router_menu = {"File", "Load Profile", "routerproxy"}
     local local_menu = proxifer:findMenuItem(str_local_menu)
     local router_menu = proxifer:findMenuItem(str_router_menu)
+    if not local_menu or not router_menu then
+        hs.alert.show("Proxifier profile menu is not available")
+        return
+    end
     if pname == 'local' then
         if (router_menu['ticked'] and local_menu) then
             proxifer:selectMenuItem(str_local_menu)
@@ -300,17 +340,17 @@ end
 
 
 
-wifiWatcher = nil
+local wifiWatcher = nil
 --homeSSID = "SHAO"
-homeSSID = {"VolcanNet", "Mandalorian5", "Mandalorian"}
-lastSSID = hs.wifi.currentNetwork()
-homebin_pro = os.getenv("HOME") .. "/bin/pro"
+local homeSSID = {"VolcanNet", "Mandalorian5", "Mandalorian"}
+local lastSSID = hs.wifi.currentNetwork()
+local homebin_pro = os.getenv("HOME") .. "/bin/pro"
 
 function ssidChangedCallback()
     local hostname = hs.execute("hostname")
     if  string.match(hostname,'iMac') == nil then
     
-        newSSID = hs.wifi.currentNetwork()
+        local newSSID = hs.wifi.currentNetwork()
 
         local function contains(table, val)
            for i=1,#table do
@@ -324,20 +364,21 @@ function ssidChangedCallback()
         if contains(homeSSID, newSSID) then
             -- We just joined our home WiFi network
             if newSSID == "VolcanNet" then 
-                cmd = "ALL_PROXY=socks5://192.168.1.1:1081  '\"$@\"'"
+                local cmd = "ALL_PROXY=socks5://192.168.1.1:1081  '\"$@\"'"
                 change_profile("officerouter")
+                hs.execute("echo "..cmd.." >| "..homebin_pro)
             else
-                cmd = "ALL_PROXY=socks5://192.168.1.1:1082  '\"$@\"'"
+                local cmd = "ALL_PROXY=socks5://192.168.1.1:1082  '\"$@\"'"
                 change_profile("router")
+                hs.execute("echo "..cmd.." >| "..homebin_pro)
             end
-            hs.execute("echo "..cmd.." >| "..homebin_pro)
             --hs.execute("launchctl unload ~/Library/LaunchAgents/com.ss_plugins.kcptun.plist")
             --hs.execute("launchctl unload ~/Library/LaunchAgents/com.ss_plugins.obfs.plist")
             manage_ss('close')
         else
             -- We just departed our home WiFi network
             change_profile("local")
-            cmd = "ALL_PROXY=socks5://127.0.0.1:1086 https_proxy=127.0.0.1:1087 '\"$@\"'"
+            local cmd = "ALL_PROXY=socks5://127.0.0.1:1086 https_proxy=127.0.0.1:1087 '\"$@\"'"
             hs.execute("echo "..cmd.." >| "..homebin_pro)
             --hs.execute("launchctl load ~/Library/LaunchAgents/com.ss_plugins.kcptun.plist")
             --hs.execute("launchctl load ~/Library/LaunchAgents/com.ss_plugins.obfs.plist")
@@ -354,12 +395,12 @@ end
 function switch_ss(signal)
     if signal == 'local' then
         change_profile("local")
-        cmd = "ALL_PROXY=socks5://127.0.0.1:1086 https_proxy=127.0.0.1:1087 '\"$@\"'"
+        local cmd = "ALL_PROXY=socks5://127.0.0.1:1086 https_proxy=127.0.0.1:1087 '\"$@\"'"
         hs.execute("echo "..cmd.." >| "..homebin_pro)
         manage_ss('open')
     else
         change_profile("router")
-        cmd = "ALL_PROXY=socks5://192.168.1.6:5321 '\"$@\"'"
+        local cmd = "ALL_PROXY=socks5://192.168.1.6:5321 '\"$@\"'"
         hs.execute("echo "..cmd.." >| "..homebin_pro)
         manage_ss('close')
     end
@@ -368,7 +409,7 @@ end
 function download_youtube()
     local url = hs.pasteboard.getContents()
     if url ~= nil then
-        started = hs.execute("~/bin/ydown '"..hs.pasteboard.getContents().."'", true)
+        local started = hs.execute("~/bin/ydown "..shellQuote(url), true)
 
         if started ~=nil then 
             if started then
@@ -396,4 +437,3 @@ hs.hotkey.bind({"cmd", "alt"}, "return", function()
 		hs.application.open("iTerm")
 	end
 end)
-
