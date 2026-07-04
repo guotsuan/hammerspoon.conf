@@ -21,9 +21,9 @@ obj.uhd_resolution = false
 
 local user_agent_str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/603.2.4 (KHTML, like Gecko) Version/10.1.1 Safari/603.2.4"
 local json_req_url = "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"
+local cache_dir = os.getenv("HOME") .. "/wallpapers"
 
 local function cachePath(file_name)
-    local cache_dir = hs.configdir .. "/BingDaily"
     hs.fs.mkdir(cache_dir)
     return cache_dir .. "/" .. file_name
 end
